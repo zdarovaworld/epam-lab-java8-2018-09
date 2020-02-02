@@ -1,9 +1,11 @@
 package lambda.part1.exercise;
 
+import com.google.common.collect.FluentIterable;
 import lambda.data.Person;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -19,6 +21,8 @@ class Exercise3 {
 
         // TODO use Arrays.sort + expression-lambda
 
+        Arrays.sort(persons, (x, y) -> Integer.compare(x.getAge(), y.getAge()));
+
         assertThat(persons, is(arrayContaining(
                 new Person("Иван", "Мельников", 20),
                 new Person("Николай", "Зимов", 30),
@@ -33,6 +37,11 @@ class Exercise3 {
 
         // TODO use Arrays.sort + statement-lambda
 
+        Arrays.sort(persons, (x, y) -> {
+            int sortByLastName = x.getLastName().compareTo(y.getLastName());
+            return sortByLastName == 0 ? x.getFirstName().compareTo(y.getFirstName()) : sortByLastName;
+        });
+
         assertThat(persons, is(arrayContaining(
                 new Person("Алексей", "Доренко", 40),
                 new Person("Артем", "Зимов", 45),
@@ -46,7 +55,9 @@ class Exercise3 {
         List<Person> persons = Arrays.asList(getPersons());
 
         // TODO use FluentIterable
-        Person person = null;
+        Person person = FluentIterable.from(persons)
+                .firstMatch(x -> x.getAge() == 30)
+                .orNull();
 
         assertThat(person, is(new Person("Николай", "Зимов", 30)));
     }
