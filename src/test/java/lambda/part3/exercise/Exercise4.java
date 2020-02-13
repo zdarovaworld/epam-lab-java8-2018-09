@@ -6,10 +6,7 @@ import lambda.data.Person;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -19,20 +16,52 @@ class Exercise4 {
 
     private static class LazyCollectionHelper<T, R> {
 
+        private final List<T> source;
+        private final Function<T, List<R>> mapper;
+
+        private LazyCollectionHelper(List<T> source, Function<T, List<R>> mapping) {
+            this.source = source;
+            this.mapper = mapping;
+        }
+
         public static <T> LazyCollectionHelper<T, T> from(List<T> list) {
-            throw new UnsupportedOperationException();
+            return new LazyCollectionHelper<>(list, Collections::singletonList);
         }
 
         public <U> LazyCollectionHelper<T, U> flatMap(Function<R, List<U>> flatMapping) {
-            throw new UnsupportedOperationException();
+            return new LazyCollectionHelper<>(source, this.mapper.andThen(list -> listTransform(list, flatMapping)));
+        }
+
+        public <U> LazyCollectionHelper<T, U> flatMapWithCleverListTransform(Function<R, List<U>> flatMapping) {
+            return new LazyCollectionHelper<>(source, cleverListTransform(flatMapping).compose(mapper));
         }
 
         public <U> LazyCollectionHelper<T, U> map(Function<R, U> mapping) {
-            throw new UnsupportedOperationException();
+            return new LazyCollectionHelper<>(source, mapper.andThen(list -> listTransform(list, x -> Collections.singletonList(mapping.apply(x)))));
+        }
+
+        public <U> LazyCollectionHelper<T, U> mapWithCleverListTransform(Function<R, U> mapping) {
+            return new LazyCollectionHelper<>(source, cleverListTransform(mapping.andThen(Collections::singletonList)).compose(mapper));
         }
 
         public List<R> force() {
-            throw new UnsupportedOperationException();
+            List<R> result = new ArrayList<>();
+            source.forEach(element -> result.addAll(mapper.apply(element)));
+            return result;
+        }
+
+        private <U, N> List<N> listTransform(List<U> list, Function<U, List<N>> function) {
+            List<N> result = new ArrayList<>();
+            list.forEach(element -> result.addAll(function.apply(element)));
+            return result;
+        }
+
+        private <U, V> Function<List<U>, List<V>> cleverListTransform(Function<U, List<V>> function) {
+            return list -> {
+                List<V> result = new ArrayList<>();
+                list.forEach(function.andThen(result::addAll)::apply);
+                return result;
+            };
         }
     }
 
@@ -40,7 +69,12 @@ class Exercise4 {
     void mapEmployeesToCodesOfLetterTheirPositionsUsingLazyFlatMapHelper() {
         List<Employee> employees = getEmployees();
 
-        List<Integer> codes = null;
+        List<Integer> codes = LazyCollectionHelper.from(employees)
+                .flatMapWithCleverListTransform(Employee::getJobHistory)
+                .mapWithCleverListTransform(JobHistoryEntry::getPosition)
+                .flatMapWithCleverListTransform(Exercise4::calcCodes)
+                .mapWithCleverListTransform(x -> x)
+                .force();
         // TODO              LazyCollectionHelper.from(employees)
         // TODO                                  .flatMap(Employee -> JobHistoryEntry)
         // TODO                                  .map(JobHistoryEntry -> String(position))
