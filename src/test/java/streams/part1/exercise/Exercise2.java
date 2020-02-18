@@ -6,9 +6,7 @@ import lambda.data.Person;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -19,7 +17,11 @@ class Exercise2 {
     void calcAverageAgeOfEmployees() {
         List<Employee> employees = getEmployees();
 
-        Double expected = null;
+        Double expected = employees.stream()
+                .map(Employee::getPerson)
+                .mapToInt(Person::getAge)
+                .average()
+                .orElse(-1);
 
         assertThat(expected, Matchers.closeTo(33.66, 0.1));
     }
@@ -28,7 +30,10 @@ class Exercise2 {
     void findPersonWithLongestFullName() {
         List<Employee> employees = getEmployees();
 
-        Person expected = null;
+        Person expected = employees.stream()
+                .map(Employee::getPerson)
+                .max(Comparator.comparingInt(person -> person.getFullName().length()))
+                .get();
 
         assertThat(expected, Matchers.is(employees.get(1).getPerson()));
     }
@@ -37,7 +42,13 @@ class Exercise2 {
     void findEmployeeWithMaximumDurationAtOnePosition() {
         List<Employee> employees = getEmployees();
 
-        Employee expected = null;
+        Employee expected = employees.stream()
+                .max(Comparator.comparingInt(emp -> emp.getJobHistory()
+                        .stream()
+                        .mapToInt(JobHistoryEntry::getDuration)
+                        .max()
+                        .orElse(-1)))
+                .get();
 
         assertThat(expected, Matchers.is(employees.get(4)));
     }
@@ -51,7 +62,47 @@ class Exercise2 {
     void calcTotalSalaryWithCoefficientWorkExperience() {
         List<Employee> employees = getEmployees();
 
-        Double expected = null;
+        //my solution:
+        Double expected = employees.stream()
+                .map(Employee::getJobHistory)
+                .flatMap(jobHistoryEntries -> jobHistoryEntries.stream().skip(jobHistoryEntries.size() - 1))
+                .mapToDouble(JobHistoryEntry::getDuration)
+                .reduce(0, (sum, duration) -> {
+                    if (duration > 3) {
+                        return sum + 75_000 * 1.2;
+                    } else {
+                        return sum + 75_000;
+                    }
+                });
+
+        /*
+        smarter solution:
+
+        Double expected = employees.stream()
+                .map(Employee::getJobHistory)
+                .map(positions -> positions.get(positions.size() - 1))
+                .map(JobHistoryEntry::getDuration)
+                .map(d -> d > 3 ? 75000d * 1.2 : 75000)
+                .mapToDouble(Double::new)
+                .sum();
+         */
+
+        System.err.println(expected);
+
+        double sum = 0;
+        int salary = 75_000;
+        double coeff = 0.2;
+
+        for (Employee employee : employees) {
+            List<JobHistoryEntry> jobHistory = employee.getJobHistory();
+            if (jobHistory.get(jobHistory.size() - 1).getDuration() > 3) {
+                sum += salary + salary * coeff;
+            } else {
+                sum += salary;
+            }
+        }
+
+        System.out.println(sum);
 
         assertThat(expected, Matchers.closeTo(465000.0, 0.001));
     }
