@@ -35,6 +35,12 @@ class Exercise1 {
         candidates.put(helen, Status.PENDING);
 
         // TODO implementation
+        // my solution
+        candidates.forEach((person, status) ->
+                candidates.computeIfPresent(person, (key, value) -> key.getAge() > 21 ? Status.ACCEPTED : Status.DECLINED));
+
+        // better solution:
+        // candidates.replaceAll(((person, status) -> person.getAge() > 21 ? Status.ACCEPTED : Status.DECLINED));
 
         assertThat(candidates, Matchers.hasEntry(ivan, Status.ACCEPTED));
         assertThat(candidates, Matchers.hasEntry(helen, Status.ACCEPTED));
@@ -57,6 +63,9 @@ class Exercise1 {
 
         // TODO implementation
 
+        candidates.keySet().removeIf(person -> person.getAge() < 21);
+        candidates.replaceAll(((person, status) -> Status.ACCEPTED));
+
         assertThat(candidates, Matchers.hasEntry(ivan, Status.ACCEPTED));
         assertThat(candidates, Matchers.hasEntry(helen, Status.ACCEPTED));
         assertThat(candidates, not(hasKey(alex)));
@@ -73,9 +82,9 @@ class Exercise1 {
 
         // TODO implementation
 
-        Status alexStatus = null;
-        Status ivanStatus = null;
-        Status helenStatus = null;
+        Status alexStatus = candidates.getOrDefault(alex, Status.UNKNOWN);
+        Status ivanStatus = candidates.getOrDefault(ivan, Status.UNKNOWN);
+        Status helenStatus = candidates.getOrDefault(helen, Status.UNKNOWN);
 
         assertThat(alexStatus, is(Status.PENDING));
         assertThat(ivanStatus, is(Status.PENDING));
@@ -98,6 +107,8 @@ class Exercise1 {
         newValues.put(helen, Status.PENDING);
 
         // TODO implementation
+
+        oldValues.forEach((newValues::putIfAbsent));
 
         assertThat(newValues, hasEntry(alex, Status.DECLINED));
         assertThat(newValues, hasEntry(ivan, Status.ACCEPTED));
