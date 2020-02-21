@@ -80,7 +80,18 @@ class Exercise2 {
      * @throws IllegalArgumentException Если {@code value <= 0}
      */
     private static int log2(int value) throws IllegalArgumentException {
-        throw new UnsupportedOperationException();
+        if (value <= 0) {
+            throw new IllegalArgumentException();
+        }
+
+        //doesn't work
+//        x = (x >>> 1 & 0x55555555) + (x & 0x55555555);
+//        x = (x >>> 2 & 0x33333333) + (x & 0x33333333);
+//        x = (x >>> 4 & 0x0f0f0f0f) + (x & 0x0f0f0f0f);
+//        x = (x >>> 8 & 0x00ff00ff) + (x & 0x00ff00ff);
+//        return(x >>> 16) + (x & 0x0000ffff);
+
+        return (int) (Math.log(value) / Math.log(2.0));
     }
 
     @Test
@@ -111,6 +122,10 @@ class Exercise2 {
      * @throws IllegalArgumentException Если {@code base < 0} или {@code degree < 0}
      */
     private static int pow(int base, int degree) throws IllegalArgumentException {
-        throw new UnsupportedOperationException();
+        if (base < 0 || degree < 0) {
+            throw new IllegalArgumentException();
+        }
+
+        return (int) Math.pow(base, degree);
     }
 }
