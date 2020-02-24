@@ -3,73 +3,69 @@ package streams.part2.exercise;
 import lambda.data.Employee;
 import lambda.data.JobHistoryEntry;
 import lambda.data.Person;
+import lambda.data.PersonEmployerDuration;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import static java.util.Comparator.*;
+import static java.util.stream.Collectors.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 @SuppressWarnings("ConstantConditions")
 class Exercise2 {
 
     /**
      * Преобразовать список сотрудников в отображение [компания -> множество людей, когда-либо работавших в этой компании].
-     *
+     * <p>
      * Входные данные:
      * [
-     *     {
-     *         {Иван Мельников 30},
-     *         [
-     *             {2, dev, "EPAM"},
-     *             {1, dev, "google"}
-     *         ]
-     *     },
-     *     {
-     *         {Александр Дементьев 28},
-     *         [
-     *             {2, tester, "EPAM"},
-     *             {1, dev, "EPAM"},
-     *             {1, dev, "google"}
-     *         ]
-     *     },
-     *     {
-     *         {Дмитрий Осинов 40},
-     *         [
-     *             {3, QA, "yandex"},
-     *             {1, QA, "EPAM"},
-     *             {1, dev, "mail.ru"}
-     *         ]
-     *     },
-     *     {
-     *         {Анна Светличная 21},
-     *         [
-     *             {1, tester, "T-Systems"}
-     *         ]
-     *     }
+     * {
+     * {Иван Мельников 30},
+     * [
+     * {2, dev, "EPAM"},
+     * {1, dev, "google"}
      * ]
-     *
+     * },
+     * {
+     * {Александр Дементьев 28},
+     * [
+     * {2, tester, "EPAM"},
+     * {1, dev, "EPAM"},
+     * {1, dev, "google"}
+     * ]
+     * },
+     * {
+     * {Дмитрий Осинов 40},
+     * [
+     * {3, QA, "yandex"},
+     * {1, QA, "EPAM"},
+     * {1, dev, "mail.ru"}
+     * ]
+     * },
+     * {
+     * {Анна Светличная 21},
+     * [
+     * {1, tester, "T-Systems"}
+     * ]
+     * }
+     * ]
+     * <p>
      * Выходные данные:
      * [
-     *    "EPAM" -> [
-     *       {Иван Мельников 30},
-     *       {Александр Дементьев 28},
-     *       {Дмитрий Осинов 40}
-     *    ],
-     *    "google" -> [
-     *       {Иван Мельников 30},
-     *       {Александр Дементьев 28}
-     *    ],
-     *    "yandex" -> [ {Дмитрий Осинов 40} ]
-     *    "mail.ru" -> [ {Дмитрий Осинов 40} ]
-     *    "T-Systems" -> [ {Анна Светличная 21} ]
+     * "EPAM" -> [
+     * {Иван Мельников 30},
+     * {Александр Дементьев 28},
+     * {Дмитрий Осинов 40}
+     * ],
+     * "google" -> [
+     * {Иван Мельников 30},
+     * {Александр Дементьев 28}
+     * ],
+     * "yandex" -> [ {Дмитрий Осинов 40} ]
+     * "mail.ru" -> [ {Дмитрий Осинов 40} ]
+     * "T-Systems" -> [ {Анна Светличная 21} ]
      * ]
      */
     @Test
@@ -77,6 +73,21 @@ class Exercise2 {
         List<Employee> employees = getEmployees();
 
         Map<String, Set<Person>> result = null;
+
+//        solution with additional class:
+//        result = employees.stream()
+//                .flatMap(emp -> emp.getJobHistory()
+//                        .stream()
+//                        .map(job -> new PersonEmployerPair(emp.getPerson(), job.getEmployer())))
+//                .collect(groupingBy(PersonEmployerPair::getEmployer, mapping(PersonEmployerPair::getPerson, toSet())));
+
+//        solution without additional class:
+        result = employees.stream()
+                .flatMap(emp -> emp.getJobHistory().stream()
+                        .collect(toMap(JobHistoryEntry::getEmployer, entry -> emp.getPerson(), (p1, p2) -> p1))
+                        .entrySet()
+                        .stream())
+                .collect(groupingBy(Map.Entry::getKey, mapping(Map.Entry::getValue, toSet())));
 
         assertThat(result, hasEntry((is("yandex")), contains(employees.get(2).getPerson())));
         assertThat(result, hasEntry((is("mail.ru")), contains(employees.get(2).getPerson())));
@@ -92,57 +103,59 @@ class Exercise2 {
 
     /**
      * Преобразовать список сотрудников в отображение [компания -> множество людей, начавших свою карьеру в этой компании].
-     *
+     * <p>
      * Пример.
-     *
+     * <p>
      * Входные данные:
      * [
-     *     {
-     *         {Иван Мельников 30},
-     *         [
-     *             {2, dev, "EPAM"},
-     *             {1, dev, "google"}
-     *         ]
-     *     },
-     *     {
-     *         {Александр Дементьев 28},
-     *         [
-     *             {2, tester, "EPAM"},
-     *             {1, dev, "EPAM"},
-     *             {1, dev, "google"}
-     *         ]
-     *     },
-     *     {
-     *         {Дмитрий Осинов 40},
-     *         [
-     *             {3, QA, "yandex"},
-     *             {1, QA, "EPAM"},
-     *             {1, dev, "mail.ru"}
-     *         ]
-     *     },
-     *     {
-     *         {Анна Светличная 21},
-     *         [
-     *             {1, tester, "T-Systems"}
-     *         ]
-     *     }
+     * {
+     * {Иван Мельников 30},
+     * [
+     * {2, dev, "EPAM"},
+     * {1, dev, "google"}
      * ]
-     *
+     * },
+     * {
+     * {Александр Дементьев 28},
+     * [
+     * {2, tester, "EPAM"},
+     * {1, dev, "EPAM"},
+     * {1, dev, "google"}
+     * ]
+     * },
+     * {
+     * {Дмитрий Осинов 40},
+     * [
+     * {3, QA, "yandex"},
+     * {1, QA, "EPAM"},
+     * {1, dev, "mail.ru"}
+     * ]
+     * },
+     * {
+     * {Анна Светличная 21},
+     * [
+     * {1, tester, "T-Systems"}
+     * ]
+     * }
+     * ]
+     * <p>
      * Выходные данные:
      * [
-     *    "EPAM" -> [
-     *       {Иван Мельников 30},
-     *       {Александр Дементьев 28}
-     *    ],
-     *    "yandex" -> [ {Дмитрий Осинов 40} ]
-     *    "T-Systems" -> [ {Анна Светличная 21} ]
+     * "EPAM" -> [
+     * {Иван Мельников 30},
+     * {Александр Дементьев 28}
+     * ],
+     * "yandex" -> [ {Дмитрий Осинов 40} ]
+     * "T-Systems" -> [ {Анна Светличная 21} ]
      * ]
      */
     @Test
     void indexByFirstEmployer() {
         List<Employee> employees = getEmployees();
 
-        Map<String, Set<Person>> result = null;
+        Map<String, Set<Person>> result = employees.stream()
+                .collect(groupingBy(emp -> emp.getJobHistory().get(0).getEmployer(),
+                                    mapping(Employee::getPerson, toSet())));
 
         assertThat(result, hasEntry(is("yandex"), contains(employees.get(2).getPerson())));
         assertThat(result, hasEntry(is("T-Systems"), containsInAnyOrder(employees.get(3).getPerson(), employees.get(5).getPerson())));
@@ -161,7 +174,16 @@ class Exercise2 {
     void greatestExperiencePerEmployer() {
         List<Employee> employees = getEmployees();
 
-        Map<String, Person> collect = null;
+        Map<String, Person> collect = employees.stream()
+                .flatMap(emp -> emp.getJobHistory()
+                                    .stream()
+                                    .collect(groupingBy(JobHistoryEntry::getEmployer, summingInt(JobHistoryEntry::getDuration)))
+                                    .entrySet()
+                                    .stream()
+                                    .map(entry -> new PersonEmployerDuration(emp.getPerson(), entry.getKey(), entry.getValue())))
+                .collect(groupingBy(PersonEmployerDuration::getEmployer,
+                         collectingAndThen(maxBy(comparingInt(PersonEmployerDuration::getDuration)),
+                                            entry -> entry.map(PersonEmployerDuration::getPerson).orElseThrow(IllegalStateException::new))));
 
         assertThat(collect, hasEntry("EPAM", employees.get(4).getPerson()));
         assertThat(collect, hasEntry("google", employees.get(1).getPerson()));
