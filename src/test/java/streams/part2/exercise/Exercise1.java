@@ -3,16 +3,14 @@ package streams.part2.exercise;
 import lambda.data.Employee;
 import lambda.data.JobHistoryEntry;
 import lambda.data.Person;
+import lambda.data.PersonFirstPositionPair;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 @SuppressWarnings({"ConstantConditions", "unused"})
 class Exercise1 {
@@ -43,7 +41,7 @@ class Exercise1 {
                         .map(JobHistoryEntry::getPosition)
                         .anyMatch("QA"::equals))
                 .map(Employee::getPerson)
-                .collect(Collectors.toSet());
+                .collect(toSet());
 
 
         assertThat(workedAsQa, containsInAnyOrder(
@@ -62,7 +60,7 @@ class Exercise1 {
         String result = employees.stream()
                 .map(Employee::getPerson)
                 .map(Person::getFullName)
-                .collect(Collectors.joining(System.lineSeparator()));
+                .collect(joining(System.lineSeparator()));
 
         assertThat(result, is(
                 "Иван Мельников\n"
@@ -79,11 +77,37 @@ class Exercise1 {
         List<Employee> employees = getEmployees();
 
         // TODO реализация
-        Map<String, Set<Person>> result = null;
+        //my solution is not very optimal
+        Map<String, Set<Person>> result = null; //employees.stream()
+//                .map(employee -> new PersonFirstPositionPair(employee.getPerson(), employee.getJobHistory().get(0).getPosition()))
+//                .collect(toMap(PersonFirstPositionPair::getFirstPosition,
+//                        Exercise1::convertToSet,
+//                        Exercise1::addToSet));
+
+        //better solution:
+        result = employees.stream()
+                .collect(toMap(employee -> employee.getJobHistory().get(0).getPosition(),
+                        employee -> new HashSet<>(Collections.singletonList(employee.getPerson())),
+                        (left, right) -> {
+                            left.addAll(right);
+                            return left;
+                        }));
+
 
         assertThat(result, hasEntry(is("dev"), contains(employees.get(0).getPerson())));
         assertThat(result, hasEntry(is("QA"), containsInAnyOrder(employees.get(2).getPerson(), employees.get(5).getPerson())));
         assertThat(result, hasEntry(is("tester"), containsInAnyOrder(employees.get(1).getPerson(), employees.get(3).getPerson(), employees.get(4).getPerson())));
+    }
+
+    private static Set<Person> convertToSet(PersonFirstPositionPair pair) {
+        Set<Person> set = new HashSet<>();
+        set.add(pair.getPerson());
+        return set;
+    }
+
+    private static Set<Person> addToSet(Set<Person> left, Set<Person> right) {
+        left.addAll(right);
+        return left;
     }
 
     @Test
@@ -92,8 +116,9 @@ class Exercise1 {
         List<Employee> employees = getEmployees();
 
         // TODO реализация
-        Map<String, Set<Person>> result = null;
-        employees.stream();
+        Map<String, Set<Person>> result = employees.stream()
+                .collect(groupingBy(emp -> emp.getJobHistory().get(0).getPosition(),
+                        mapping(Employee::getPerson, toSet())));
 
         assertThat(result, hasEntry(is("dev"), contains(employees.get(0).getPerson())));
         assertThat(result, hasEntry(is("QA"), containsInAnyOrder(employees.get(2).getPerson(), employees.get(5).getPerson())));
